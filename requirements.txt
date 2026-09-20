@@ -1,0 +1,4 @@
+eel>=0.17.0
+gevent>=22.10.0
+bottle>=0.12.25
+pyparsing>=3.0.0

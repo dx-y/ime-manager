@@ -1,0 +1,24 @@
+# 构建产物
+build/
+dist/
+
+# Python
+__pycache__/
+*.pyc
+
+# 运行状态与日志
+ime_lock.json
+ime_watchdog.log
+launcher_error.log
+launcher.log
+
+# 本地 Chrome 独立配置
+chrome_profile/
+
+# 系统
+Thumbs.db
+Desktop.ini
+
+# IDE
+.vscode/
+.idea/

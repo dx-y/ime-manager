@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>输入法管理器</title>
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="bg-orbs">
+  <div class="orb orb-a"></div>
+  <div class="orb orb-b"></div>
+  <div class="orb orb-c"></div>
+</div>
+
+<header class="glass header">
+  <div class="brand">
+    <div class="brand-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+        <rect x="3" y="4" width="18" height="16" rx="3"/>
+        <path d="M7 9h10M7 13h7M7 17h4"/>
+      </svg>
+    </div>
+    <div>
+      <h1>输入法管理器</h1>
+      <p class="sub">顺序 · 默认 · 防篡改守护</p>
+    </div>
+  </div>
+  <div class="lock-badge" id="lockBadge">
+    <svg class="badge-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="5" y="11" width="14" height="9" rx="2.6"/>
+      <path class="lock-shackle" d="M8 11V8.2a4 4 0 0 1 8 0V11"/>
+    </svg>
+    <span id="lockBadgeText">未锁定</span>
+  </div>
+</header>
+
+<main class="layout">
+
+  <!-- 左：已启用输入法（拖拽排序） -->
+  <section class="glass panel">
+    <div class="panel-head">
+      <h2>启用中的输入法</h2>
+      <span class="hint">拖拽调整顺序</span>
+    </div>
+    <ul class="ime-list" id="imeList">
+      <li class="empty">加载中…</li>
+    </ul>
+  </section>
+
+  <!-- 右：默认设置 + 每应用设置 -->
+  <section class="side">
+
+    <div class="glass panel">
+      <div class="panel-head">
+        <h2>全局默认输入法</h2>
+        <span class="hint">所有窗口默认使用</span>
+      </div>
+      <div class="default-box" id="defaultBox">
+        <div class="default-current">—</div>
+      </div>
+    </div>
+
+    <div class="glass panel lock-panel">
+      <div class="panel-head">
+        <h2>顺序锁定 · 防篡改</h2>
+        <span class="hint" id="lockHint">锁定后自动守护</span>
+      </div>
+      <p class="lock-desc">输入法更新后可能抢占首位，锁定顺序后工具将自动检测并恢复。</p>
+      <button class="glass-btn primary lock-btn" id="lockBtn">
+        <svg class="lock-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="5" y="11" width="14" height="9" rx="2.6"/>
+          <path class="lock-shackle" d="M8 11V8.2a4 4 0 0 1 8 0V11"/>
+        </svg>
+        <span>锁定当前顺序</span>
+      </button>
+      <button class="glass-btn danger lock-btn hidden" id="unlockBtn">
+        <svg class="lock-icon open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="5" y="11" width="14" height="9" rx="2.6"/>
+          <path class="lock-shackle" d="M8 11V8.2a4 4 0 0 1 7.6-2.5"/>
+        </svg>
+        <span>解除锁定</span>
+      </button>
+      <div class="watchdog-log" id="watchdogLog"></div>
+    </div>
+
+  </section>
+
+</main>
+
+<footer class="glass footer">
+  <div class="footer-head">
+    <h2>本机已安装输入法</h2>
+    <span class="hint" id="installedCount"></span>
+  </div>
+  <ul class="installed-list" id="installedList">
+    <li class="empty">加载中…</li>
+  </ul>
+</footer>
+
+<!-- 确认弹窗（液态玻璃） -->
+<div class="modal-mask hidden" id="modalMask">
+  <div class="modal glass" id="modal">
+    <h3 id="modalTitle">确认操作</h3>
+    <p id="modalText">确定要执行该操作吗？</p>
+    <div class="modal-actions">
+      <button class="glass-btn" id="modalCancel">取消</button>
+      <button class="glass-btn danger" id="modalOk">确认</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast hidden" id="toast"></div>
+
+<script src="/eel.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
