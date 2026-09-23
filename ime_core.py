@@ -487,7 +487,7 @@ def acl_status():
 
 def _acl_locked():
     st = acl_status()
-    return bool(st.get("ok") and (st.get("profile_locked") or st.get("ctf_locked") or st.get("subkeys_locked")))
+    return bool(st.get("ok") and (st.get("root_locked") or st.get("profile_locked") or st.get("ctf_locked") or st.get("subkeys_locked")))
 
 
 def lock_acls():

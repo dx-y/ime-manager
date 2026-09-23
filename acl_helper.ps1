@@ -7,6 +7,7 @@ param(
 $ErrorActionPreference = "Stop"
 $Identity = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name
 
+$ProfileRoot = "Registry::HKCU\Control Panel\International\User Profile"
 $ProfilePath = "Registry::HKCU\Control Panel\International\User Profile\zh-Hans-CN"
 $CtfPath = "Registry::HKCU\Software\Microsoft\CTF\SortOrder\AssemblyItem\0x00000804\{34745C63-B2F0-4784-8B67-5E12C8701A31}"
 
@@ -74,27 +75,31 @@ function Get-CtfSubkeys {
 
 switch ($Action) {
     "lock" {
-        Add-Deny $ProfilePath "SetValue"
-        Add-Deny $CtfPath "SetValue"
+        Add-Deny $ProfileRoot "SetValue,Delete"
+        Add-Deny $ProfilePath "SetValue,Delete"
+        Add-Deny $CtfPath "SetValue,Delete"
         foreach ($sub in Get-CtfSubkeys) { Add-Deny $sub "SetValue,Delete" }
         "LOCKED"
     }
     "unlock" {
-        Remove-Deny $ProfilePath "SetValue"
-        Remove-Deny $CtfPath "SetValue"
+        Remove-Deny $ProfileRoot "SetValue,Delete"
+        Remove-Deny $ProfilePath "SetValue,Delete"
+        Remove-Deny $CtfPath "SetValue,Delete"
         foreach ($sub in Get-CtfSubkeys) { Remove-Deny $sub "SetValue,Delete" }
         "UNLOCKED"
     }
     default {
+        $root = Get-DenyState $ProfileRoot
         $profile = Get-DenyState $ProfilePath
         $ctf = Get-DenyState $CtfPath
         $subs = @(Get-CtfSubkeys | ForEach-Object { Get-DenyState $_ })
         $lockedSubs = @($subs | Where-Object { $_.denies -contains "SetValue, Delete" -or $_.denies -contains "Delete, SetValue" })
         $result = @{
-            profile_locked = ($profile.denies -contains "SetValue")
-            ctf_locked = ($ctf.denies -contains "SetValue")
+            root_locked = ($root.denies -contains "SetValue, Delete" -or $root.denies -contains "Delete, SetValue")
+            profile_locked = ($profile.denies -contains "SetValue, Delete" -or $profile.denies -contains "Delete, SetValue")
+            ctf_locked = ($ctf.denies -contains "SetValue, Delete" -or $ctf.denies -contains "Delete, SetValue")
             subkeys_locked = ($subs.Count -gt 0) -and ($lockedSubs.Count -eq $subs.Count)
-            keys = @($profile) + @($ctf) + $subs
+            keys = @($root) + @($profile) + @($ctf) + $subs
         }
         $result | ConvertTo-Json -Depth 4 -Compress
     }

@@ -1,6 +1,6 @@
 # 输入法管理器 ImeManager
 
-![Version](https://img.shields.io/badge/版本-v0.1.0-blue)
+![Version](https://img.shields.io/badge/版本-v0.1.1-blue)
 ![License](https://img.shields.io/badge/License-MIT-green)
 ![Platform](https://img.shields.io/badge/Platform-Windows%2010%2F11-lightgrey)
 ![Build](https://img.shields.io/badge/Build-PyInstaller%20onefile-orange)
@@ -84,12 +84,12 @@ Windows 未提供"锁定输入法顺序"的官方 API。ImeManager 采用双层�
 | 层面 | 实现 |
 |------|------|
 | 顺序存储 | `HKCU\Control Panel\International\User Profile\<lang>` 下键值 `0804:{CLSID}{ProfileGUID}` 为顺序号 |
-| 默认输入法 | 同键 `InputMethodOverride` |
+| 默认输入法 | `HKCU\Control Panel\International\User Profile` 根键的 `InputMethodOverride` |
 | CTF 排序 | `HKCU\Software\Microsoft\CTF\SortOrder\AssemblyItem\0x00000804\{34745C63-...}` |
-| 物理锁定 | 对上述注册表键写入 `Deny SetValue` ACL，系统级拒绝第三方写入 |
-| 守护兜底 | watchdog 线程定时比对快照，检测到顺序被改写后 5 秒内自动恢复 |
+| 物理锁定 | 对上述注册表键写入 `Deny SetValue, Delete` ACL，系统级拒绝第三方写入与删键重建，**连默认输入法一起保护** |
+| 守护兜底 | watchdog 线程定时比对快照，检测到顺序/默认被改写后 5 秒内自动恢复 |
 
-> 解锁后用户可自由修改顺序、卸载或新增输入法。锁定仅保护"顺序"，不限制安装 / 卸载 / 更新。
+> 解锁后用户可自由修改顺序、卸载或新增输入法。锁定仅保护"顺序与默认"，不限制安装 / 卸载 / 更新。
 
 ## 手动构建
 
@@ -117,7 +117,7 @@ ime_manager/
 ├── launcher.py        # 兼容启动器（脚本模式备用）
 ├── acl_helper.ps1     # PowerShell ACL 固化解锁辅助脚本
 ├── ImeManager.spec    # PyInstaller 构建配置
-├── version_info.txt   # exe 版本信息（v0.1.0）
+├── version_info.txt   # exe 版本信息（v0.1.1）
 ├── web/               # 前端（液态玻璃 UI）
 │   ├── index.html
 │   ├── style.css
@@ -140,6 +140,15 @@ ime_manager/
 - PyInstaller 单文件打包（内置 Edge/Chrome 回退，跨环境免安装）
 
 ## 版本历史
+
+### v0.1.1（2026-09-23）
+
+修复顺序锁定失效问题：
+
+- **锁定范围补全**：旧版仅对 `User Profile\zh-Hans-CN` 顺序键与 CTF 排序键设置 Deny，漏掉了 `User Profile` 根键（`InputMethodOverride` 默认输入法所在），导致输入法更新/抢占默认时锁定失效
+- **权限位补全**：对所有相关键同时 Deny `SetValue` 与 `Delete`，防止删除默认输入法键值绕过锁定
+- **兼容性**：`ime_core.py` 的 ACL 状态检测同步兼容根键锁定（root_locked）
+- 使用新版 exe 重新点一次「锁定」即可使根键保护生效；卸载任意输入法前请先「解除锁定」
 
 ### v0.1.0（2026-09-20）
 
