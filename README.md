@@ -1,13 +1,13 @@
 # 输入法管理器 ImeManager
 
-![Version](https://img.shields.io/badge/版本-v0.1.1-blue)
+![Version](https://img.shields.io/badge/版本-v0.2.0-blue)
 ![License](https://img.shields.io/badge/License-MIT-green)
 ![Platform](https://img.shields.io/badge/Platform-Windows%2010%2F11-lightgrey)
 ![Build](https://img.shields.io/badge/Build-PyInstaller%20onefile-orange)
 
-> 自动检测本机全部输入法 · 拖拽排序 · 一键设为默认 · 顺序锁定防篡改（注册表 ACL 物理固化 + 后台守护兜底）
+> 自动检测本机全部输入法 · 拖拽排序 · 一键设为默认 · 顺序锁定防篡改（注册表 ACL 物理固化 + 后台守护兜底 + SYSTEM 后门封堵）
 
-输入法更新后频繁抢占首位？第三方输入法偷偷改默认？**ImeManager** 是一个通用、免安装、单文件的 Windows 输入法顺序管理工具。它自动识别本机所有已安装输入法，支持拖拽排序、临时启停、设置全局默认，并可在锁定后**物理固化**注册表顺序——即使退出程序、输入法更新，也无法再打乱你的顺序。
+输入法更新后频繁抢占首位？第三方输入法偷偷改默认？**ImeManager** 是一个通用、免安装、单文件的 Windows 输入法顺序管理工具。它自动识别本机所有已安装输入法，支持拖拽排序、临时启停、设置全局默认，并可在锁定后**物理固化**注册表顺序——即使退出程序、输入法更新，也无法再打乱你的顺序。部分输入法以 SYSTEM 权限维护服务绕过用户级 ACL 改写顺序，v0.2.0 起锁定将同步封堵这类后门，**以管理器为准**。
 
 ![主界面截图](docs/screenshot.png)
 
@@ -34,6 +34,7 @@
 - **顺序锁定 · 防篡改**：
   - 注册表 ACL 物理固化（`Deny SetValue`），系统级拒绝第三方改写，**退出程序后依然生效**
   - 后台守护线程兜底，检测到顺序被改写后 5 秒内自动恢复
+- **SYSTEM 后门封堵**：部分输入法（如千问）安装 `LocalSystem` 维护服务、开机自启、计划任务，可绕过用户级 ACL 改写顺序；锁定后管理器自动封堵（停服禁用 / 自启改名 / 任务禁用），更新复活后 watchdog 自动再封堵，**以管理器为准**
 - **独立窗口**：使用独立的 Chrome 配置目录，与日常浏览器互不干扰（无插件、无书签污染）
 - **静默驻留**：后台服务常驻内存约 40 MB，窗口关闭后仍守护顺序；二次双击秒开窗口
 - **轻量免装**：打包后单文件约 25 MB，无需 Python、无需管理员权限、无需联网
@@ -73,8 +74,8 @@ python main.py
 1. **调整顺序**：在「启用中的输入法」直接拖动条目，松开即应用
 2. **设为默认**：点击条目右侧「设为默认」，立即写入系统默认输入法
 3. **停用 / 启用**：点击条目右侧开关；关闭后条目变暗并标记「已停用」，再次点击恢复
-4. **锁定顺序**：点击「锁定」，注册表 ACL 即刻固化 + 守护线程启动
-5. **解除锁定**：点击「解除锁定」，恢复自由修改（输入法更新、新增、卸载均不受限）
+4. **锁定顺序**：点击「锁定」，注册表 ACL 即刻固化 + 守护线程启动 + SYSTEM 后门同步封堵（首次封堵需在 UAC 弹窗点「是」）
+5. **解除锁定**：点击「解除锁定」，恢复自由修改（输入法更新、新增、卸载均不受限，后门封堵同步解除）
 6. **启用已安装输入法**：在「本机已安装输入法」点击未启用项右侧 `+` 按钮
 
 ## 防篡改原理
@@ -88,6 +89,7 @@ Windows 未提供"锁定输入法顺序"的官方 API。ImeManager 采用双层�
 | CTF 排序 | `HKCU\Software\Microsoft\CTF\SortOrder\AssemblyItem\0x00000804\{34745C63-...}` |
 | 物理锁定 | 对上述注册表键写入 `Deny SetValue, Delete` ACL，系统级拒绝第三方写入与删键重建，**连默认输入法一起保护** |
 | 守护兜底 | watchdog 线程定时比对快照，检测到顺序/默认被改写后 5 秒内自动恢复 |
+| 后门封堵 | 枚举 LocalSystem 维护服务、开机自启、计划任务（按厂商关键词识别），锁定即停服禁用 / 自启改名 / 任务禁用；复活自动再封堵。封堵需管理员权限，经 UAC 提权执行（仅写入服务配置与 Run 键，不影响输入法本体文件） |
 
 > 解锁后用户可自由修改顺序、卸载或新增输入法。锁定仅保护"顺序与默认"，不限制安装 / 卸载 / 更新。
 
@@ -101,6 +103,7 @@ pyinstaller --noconfirm --clean --onefile --noconsole \
   --version version_info.txt \
   --add-data "web;web" \
   --add-data "acl_helper.ps1;." \
+  --add-data "backdoor_helper.ps1;." \
   --collect-all gevent --collect-all eel \
   --hidden-import bottle --hidden-import bottle_websocket --hidden-import pyparsing \
   main.py
@@ -114,10 +117,12 @@ pyinstaller --noconfirm --clean --onefile --noconsole \
 ime_manager/
 ├── main.py            # 入口：服务常驻 + 窗口管理（单入口一体模式）
 ├── ime_core.py        # 核心：注册表读写、输入法扫描、ACL 固化、watchdog
+├── backdoor.py        # SYSTEM 后门检测与封堵（服务/自启/计划任务）
 ├── launcher.py        # 兼容启动器（脚本模式备用）
 ├── acl_helper.ps1     # PowerShell ACL 固化解锁辅助脚本
+├── backdoor_helper.ps1 # PowerShell 后门封堵/解封辅助脚本（UAC 提权执行）
 ├── ImeManager.spec    # PyInstaller 构建配置
-├── version_info.txt   # exe 版本信息（v0.1.1）
+├── version_info.txt   # exe 版本信息（v0.2.2）
 ├── web/               # 前端（液态玻璃 UI）
 │   ├── index.html
 │   ├── style.css
@@ -140,6 +145,14 @@ ime_manager/
 - PyInstaller 单文件打包（内置 Edge/Chrome 回退，跨环境免安装）
 
 ## 版本历史
+
+### v0.2.0（2026-09-24）
+新增 SYSTEM 后门封堵，兑现"设置好就不能被改变"的防护承诺：
+- **后门检测**：枚举 LocalSystem 维护服务、开机自启（HKLM Run）、计划任务，按厂商关键词识别输入法后门（当前内置千问规则）
+- **锁定联动封堵**：点击「锁定」自动停服禁用 + 自启改名备份 + 任务禁用，经 UAC 提权执行；**以管理器为准**
+- **watchdog 再封堵**：锁定期间若后门复活（如输入法更新重新安装服务），自动再封堵并写入守护日志
+- **解锁联动解封**：解除锁定时恢复被禁用的服务与计划任务、还原自启值，不影响输入法正常更新
+- **UI 升级**：锁定面板新增「SYSTEM 后门封堵」状态区，锁定前弹窗提示 UAC 授权
 
 ### v0.1.1（2026-09-23）
 

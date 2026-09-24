@@ -26,6 +26,8 @@ import threading
 import time
 import winreg
 
+import backdoor
+
 PROFILE_KEY = r"Control Panel\International\User Profile"
 CTF_SORT_BASE = r"Software\Microsoft\CTF\SortOrder\AssemblyItem"
 CTF_IME_CATEGORY = "{34745C63-B2F0-4784-8B67-5E12C8701A31}"
@@ -894,7 +896,7 @@ def _notify_ctf():
 
 
 def lock_order(lang=None):
-    """锁定当前顺序：ACL 固化拒绝第三方写入 + 快照 watchdog 兜底。"""
+    """锁定当前顺序：ACL 固化拒绝第三方写入 + 快照 watchdog 兜底 + 封堵 SYSTEM 级后门。"""
     if lang is None:
         langs = list_languages()
         lang = langs[0] if langs else "zh-Hans-CN"
@@ -914,6 +916,10 @@ def lock_order(lang=None):
         return {"ok": False, "message": f"保存锁定快照失败: {e}"}
 
     acl_r = lock_acls()
+
+    # 封堵 SYSTEM 级后门（服务 / 自启 / 计划任务），确保锁定无法被绕过
+    bd_r = backdoor.block_backdoors()
+
     _lock_state["locked"] = True
     _lock_state["stop"] = False
     _lock_state["lang"] = lang
@@ -921,16 +927,17 @@ def lock_order(lang=None):
         t = threading.Thread(target=_watchdog_loop, daemon=True)
         _lock_state["thread"] = t
         t.start()
-    return {"ok": True, "acl": acl_r,
-            "message": f"顺序已锁定（ACL 固化 + 守护，{len(tips)} 个输入法）"}
+    return {"ok": True, "acl": acl_r, "backdoor": bd_r,
+            "message": f"顺序已锁定（ACL 固化 + 守护 + 后门封堵，{len(tips)} 个输入法）"}
 
 
 def unlock_order():
-    """解除锁定：移除 ACL 固化并停止 watchdog。"""
+    """解除锁定：移除 ACL 固化并停止 watchdog，同时解除后门封堵。"""
     _lock_state["stop"] = True
     _lock_state["locked"] = False
     acl_r = unlock_acls()
-    return {"ok": True, "acl": acl_r, "message": "已解除顺序锁定"}
+    bd_r = backdoor.unblock_backdoors()
+    return {"ok": True, "acl": acl_r, "backdoor": bd_r, "message": "已解除顺序锁定"}
 
 
 def is_locked():
@@ -939,16 +946,18 @@ def is_locked():
         "lock_file": os.path.exists(LOCK_FILE),
         "interval": WATCHDOG_INTERVAL,
         "acl": acl_status(),
+        "backdoor": backdoor.backdoor_status(),
     }
 
 
 def _watchdog_loop():
-    """后台守护线程：周期对比当前顺序与锁定快照，被篡改时自动恢复。"""
+    """后台守护线程：周期对比当前顺序与锁定快照，被篡改时自动恢复；后门复活时自动再封堵。"""
     while not _lock_state["stop"]:
         try:
             snap = load_lock()
             if snap and _lock_state["locked"]:
                 _auto_restore_if_needed(snap)
+                _auto_reblock_backdoors()
         except Exception:
             pass
         time.sleep(WATCHDOG_INTERVAL)
@@ -993,6 +1002,30 @@ def _auto_restore_if_needed(snap):
 
     if changed:
         _log_watchdog("检测到输入法顺序被篡改，已自动恢复锁定顺序")
+
+
+def _auto_reblock_backdoors():
+    """锁定期间：若检测到后门复活（服务被重新启用/自启恢复/任务启用），自动再封堵。
+
+    千问更新时安装程序可能重新拉起维护服务或恢复自启，watchdog 必须持续压制，
+    保证锁定顺序始终以管理器为准。
+    """
+    try:
+        st = backdoor.backdoor_status()
+        if not st.get("any"):
+            return
+        if st.get("blocked"):
+            return
+        r = backdoor.block_backdoors()
+        if r.get("ok"):
+            _log_watchdog("检测到 SYSTEM 后门复活，已自动重新封堵: " +
+                          "服务=" + ",".join(r.get("blocked_services", [])) +
+                          " 自启=" + ",".join(r.get("blocked_run", [])) +
+                          " 任务=" + ",".join(r.get("blocked_tasks", [])))
+        else:
+            _log_watchdog("检测到后门复活但自动封堵失败: " + r.get("message", ""))
+    except Exception as e:
+        _log_watchdog("后门复查异常: " + str(e))
 
 
 def _log_watchdog(msg):

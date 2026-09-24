@@ -1,7 +1,7 @@
 # -*- mode: python ; coding: utf-8 -*-
 from PyInstaller.utils.hooks import collect_all
 
-datas = [('web', 'web'), ('acl_helper.ps1', '.')]
+datas = [('web', 'web'), ('acl_helper.ps1', '.'), ('backdoor_helper.ps1', '.')]
 binaries = []
 hiddenimports = ['bottle', 'bottle_websocket', 'pyparsing']
 tmp_ret = collect_all('gevent')

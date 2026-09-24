@@ -11,6 +11,7 @@ import os
 import eel
 
 import ime_core
+import backdoor
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 WEB_DIR = ime_core.resource_path("web")
@@ -151,6 +152,35 @@ def lock_status():
                 "log": ime_core.get_watchdog_log()}
     except Exception as e:
         return {"ok": False, "message": str(e)}
+
+
+# ---------------------------------------------------------------- 后门封堵
+
+@eel.expose
+def backdoor_status():
+    """查询 SYSTEM 级后门检测状态。"""
+    try:
+        return backdoor.backdoor_status()
+    except Exception as e:
+        return {"ok": False, "message": str(e)}
+
+
+@eel.expose
+def backdoor_block():
+    """手动封堵 SYSTEM 级后门（停服务 / 禁用自启 / 禁用任务）。"""
+    try:
+        return backdoor.block_backdoors()
+    except Exception as e:
+        return {"ok": False, "message": f"封堵后门失败: {e}"}
+
+
+@eel.expose
+def backdoor_unblock():
+    """解除后门封堵（恢复服务自启与开机自启项）。"""
+    try:
+        return backdoor.unblock_backdoors()
+    except Exception as e:
+        return {"ok": False, "message": f"解除后门封堵失败: {e}"}
 
 
 # ---------------------------------------------------------------- 启动

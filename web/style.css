@@ -140,7 +140,8 @@ body {
 .header { flex: none; }
 .footer { flex: none; }
 .side { display: flex; flex-direction: column; gap: 14px; }
-.side > .panel { flex: 1 1 0; display: flex; flex-direction: column; min-height: 0; }
+.side > .panel { flex: 1 1 auto; display: flex; flex-direction: column; min-height: 0; }
+.side > .lock-panel { flex: 0 1 auto; min-height: auto; }
 
 .panel { padding: 16px 20px; z-index: 1; }
 .panel-head {
@@ -203,7 +204,7 @@ body {
 .ime-badge.locked-tag { color: var(--text); background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.16); }
 .ime-badge.off-tag { color: rgba(255,255,255,.75); background: rgba(255,255,255,.08); border: 1px dashed rgba(255,255,255,.18); }
 
-.ime-actions { display: flex; gap: 8px; flex: none; }
+.ime-actions { display: flex; gap: 12px; flex: none; }
 
 /* ---------- 按钮（玻璃） ---------- */
 .glass-btn {
@@ -392,12 +393,21 @@ body {
 }
 .watchdog-log div { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .watchdog-log .warn { color: var(--danger); }
+.backdoor-box { border: 1px solid var(--border); border-radius: 10px; padding: 7px 10px; margin-bottom: 8px; background: var(--panel-2, rgba(255,255,255,.04)); }
+.backdoor-box .backdoor-head { display: flex; align-items: center; justify-content: space-between; font-size: 11.5px; gap: 8px; }
+.backdoor-box .backdoor-head span:first-child { color: var(--text-dim); }
+.backdoor-state { font-weight: 600; color: var(--text); white-space: nowrap; }
+.backdoor-box.safe { border-color: rgba(46, 204, 113, .45); }
+.backdoor-box.safe .backdoor-state { color: #2ecc71; }
+.backdoor-box.warn { border-color: rgba(230, 126, 34, .55); }
+.backdoor-box.warn .backdoor-state { color: #e67e22; }
+.backdoor-detail { margin-top: 4px; font-size: 10.5px; color: var(--text-dim); line-height: 1.5; white-space: pre-line; word-break: break-all; max-height: 47px; overflow-y: auto; }
 
 /* ---------- 底部：已安装 ---------- */
 .footer { margin: 14px auto 24px; width: min(1200px, calc(100% - 40px)); padding: 16px 20px; z-index: 1; }
 .footer-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
 .footer-head h2 { font-size: 15.5px; font-weight: 650; }
-.installed-list { list-style: none; display: grid; grid-template-columns: repeat(auto-fill, minmax(196px, 1fr)); gap: 8px; }
+.installed-list { list-style: none; display: grid; grid-template-columns: repeat(auto-fill, 180px); justify-content: start; gap: 8px; }
 .installed-item {
   display: flex; align-items: center; gap: 10px;
   padding: 8px 12px; border-radius: 12px;

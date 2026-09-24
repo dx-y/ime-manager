@@ -148,6 +148,43 @@
     const badge = $("lockBadge");
     const txt = $("lockBadgeText");
     const aclOn = !!(lk.acl && (lk.acl.profile_locked || lk.acl.ctf_locked || lk.acl.subkeys_locked));
+    // SYSTEM 后门封堵状态
+    const bd = lk.backdoor || {};
+    const bdBox = $("backdoorBox");
+    const bdState = $("backdoorState");
+    const bdDetail = $("backdoorDetail");
+    if (bdBox) {
+      if (bd.ok === false) {
+        bdState.textContent = "查询失败";
+      } else if (!bd.any) {
+        bdState.textContent = "未发现后门";
+        bdBox.className = "backdoor-box safe";
+      } else if (bd.blocked) {
+        bdState.textContent = "已封堵";
+        bdBox.className = "backdoor-box safe";
+      } else {
+        bdState.textContent = "发现未封堵";
+        bdBox.className = "backdoor-box warn";
+      }
+      if (bdDetail) {
+        const parts = [];
+        if (bd.services && bd.services.length) {
+          parts.push("服务: " + bd.services.map((s) => s.name + (s.state === "Running" ? "(运行中)" : "")).join("、"));
+        }
+        if (bd.run && bd.run.length) {
+          parts.push("自启: " + bd.run.map((r) => r.name).join("、"));
+        }
+        if (bd.tasks && bd.tasks.length) {
+          parts.push("任务: " + bd.tasks.map((t) => t.name).join("、"));
+        }
+        if (parts.length) {
+          bdDetail.textContent = parts.join("\n");
+          bdDetail.classList.remove("hidden");
+        } else {
+          bdDetail.classList.add("hidden");
+        }
+      }
+    }
     if (lk.locked) {
       badge.className = "lock-badge locked";
       txt.textContent = "已锁定 · ACL固化+守护中";
@@ -270,13 +307,15 @@
   });
 
   $("lockBtn").addEventListener("click", () => {
-    const btn = $("lockBtn");
-    btn.classList.remove("locking");
-    void btn.offsetWidth; // 重新触发动画
-    btn.classList.add("locking");
-    eel.lock()().then((r) => {
-      if (r.ok) { toast("顺序已锁定：ACL 固化 + 守护"); loadAll(); }
-      else { toast(r.message, "err"); btn.classList.remove("locking"); }
+    confirmModal("锁定当前顺序", "将固化注册表 ACL、启动后台守护，并封堵 SYSTEM 级后门（千问维护服务 / 开机自启 / 计划任务）。\n若系统弹出 UAC 授权窗口，请点击「是」以完成封堵。", () => {
+      const btn = $("lockBtn");
+      btn.classList.remove("locking");
+      void btn.offsetWidth; // 重新触发动画
+      btn.classList.add("locking");
+      eel.lock()().then((r) => {
+        if (r.ok) { toast(r.message || "顺序已锁定：ACL 固化 + 守护 + 后门封堵"); loadAll(); }
+        else { toast(r.message, "err"); btn.classList.remove("locking"); }
+      });
     });
   });
 

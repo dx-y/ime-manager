@@ -1,6 +1,9 @@
 # 构建产物
 build/
 dist/
+build*/
+dist*/
+build_*.txt
 
 # Python
 __pycache__/

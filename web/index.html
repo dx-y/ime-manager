@@ -68,7 +68,14 @@
         <h2>顺序锁定 · 防篡改</h2>
         <span class="hint" id="lockHint">锁定后自动守护</span>
       </div>
-      <p class="lock-desc">输入法更新后可能抢占首位，锁定顺序后工具将自动检测并恢复。</p>
+      <p class="lock-desc">锁定后自动守护顺序，并封堵 SYSTEM 级后门（维护服务 / 自启 / 计划任务），以管理器为准。</p>
+      <div class="backdoor-box" id="backdoorBox">
+        <div class="backdoor-head">
+          <span>SYSTEM 后门封堵</span>
+          <span class="backdoor-state" id="backdoorState">检测中…</span>
+        </div>
+        <div class="backdoor-detail hidden" id="backdoorDetail"></div>
+      </div>
       <button class="glass-btn primary lock-btn" id="lockBtn">
         <svg class="lock-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
           <rect x="5" y="11" width="14" height="9" rx="2.6"/>
